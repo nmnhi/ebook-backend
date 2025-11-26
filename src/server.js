@@ -4,16 +4,24 @@ import pool from "./config/db.js";
 import { seedBooksFromDBooks } from "./config/seedBook.js";
 
 dotenv.config();
+// Load environment variables from .env file
 
 const PORT = process.env.PORT || 8080;
 
+/**
+ * Start server
+ * - Tests PostgreSQL connection before starting
+ * - Optionally seeds books into database
+ * - Starts Express server on given PORT
+ * - Schedules book seeding every 2 hours
+ */
 async function startServer() {
   try {
     // Test database connection first
     await pool.query("SELECT NOW()");
     console.log("✅ POSTGRESQL CONNECTED SUCCESSFULLY!");
 
-    // Run seed immediately when server starts
+    // Run seed immediately when server starts (currently commented out)
     // await seedBooksFromDBooks();
 
     // Start server only if database connection is successful
@@ -27,8 +35,9 @@ async function startServer() {
       seedBooksFromDBooks();
     }, 2 * 60 * 60 * 1000);
   } catch (err) {
+    // If DB connection fails, log error and stop server
     console.error("❌ Failed to connect to PostgreSQL:", err.message);
-    process.exit(1); // Stop server completely if database connection fails
+    process.exit(1);
   }
 }
 

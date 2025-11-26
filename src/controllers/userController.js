@@ -10,7 +10,13 @@ import {
   updateUserRoleService
 } from "../services/userService.js";
 
-// Controller register user
+/**
+ * Controller: Register new user
+ * - Extracts name, email, password from request body
+ * - Calls service to create user and generate tokens
+ * - Sets refreshToken in secure HTTP-only cookie
+ * - Returns 201 with user info and accessToken
+ */
 export async function registerController(req, res) {
   try {
     const { name, email, password } = req.body;
@@ -24,7 +30,7 @@ export async function registerController(req, res) {
       httpOnly: true,
       secure: true,
       sameSite: "Strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
 
     res.status(201).json({
@@ -38,7 +44,13 @@ export async function registerController(req, res) {
   }
 }
 
-// Controller login user
+/**
+ * Controller: Login user
+ * - Extracts email and password from request body
+ * - Calls service to validate credentials and generate tokens
+ * - Sets refreshToken in secure HTTP-only cookie
+ * - Returns 200 with user info and accessToken
+ */
 export async function loginController(req, res) {
   try {
     const { email, password } = req.body;
@@ -65,7 +77,13 @@ export async function loginController(req, res) {
   }
 }
 
-// Controller get user info by ID
+/**
+ * Controller: Get user info by ID
+ * - Extracts user ID from request params
+ * - Calls service to fetch user details
+ * - Returns 200 with user info if found
+ * - Returns 404 if user not found
+ */
 export async function getUserController(req, res) {
   try {
     const { id } = req.params;
@@ -76,7 +94,12 @@ export async function getUserController(req, res) {
   }
 }
 
-// Controller list all users
+/**
+ * Controller: List all users
+ * - Calls service to fetch all users
+ * - Returns 200 with list of users
+ * - Returns 500 if an error occurs
+ */
 export async function getUsersController(req, res) {
   try {
     const users = await listUsersService();
@@ -86,7 +109,13 @@ export async function getUsersController(req, res) {
   }
 }
 
-// Controller get user by email
+/**
+ * Controller: Get user by email
+ * - Extracts email from request params
+ * - Calls service to fetch user details
+ * - Returns 200 with user info if found
+ * - Returns 404 if user not found
+ */
 export async function getUserByEmailController(req, res) {
   try {
     const { email } = req.params;
@@ -97,7 +126,14 @@ export async function getUserByEmailController(req, res) {
   }
 }
 
-// Controller refresh access token
+/**
+ * Controller: Refresh access token
+ * - Extracts refreshToken from cookies
+ * - Calls service to generate new accessToken
+ * - Returns 200 with new accessToken
+ * - Returns 400 if refreshToken missing
+ * - Returns 401 if refreshToken invalid
+ */
 export async function refreshTokenController(req, res) {
   try {
     const refreshToken = req.cookies.refreshToken;
@@ -117,7 +153,13 @@ export async function refreshTokenController(req, res) {
   }
 }
 
-// Controller logout user
+/**
+ * Controller: Logout user (current device)
+ * - Extracts accessToken from request and refreshToken from cookies
+ * - Calls service to revoke tokens
+ * - Clears refreshToken cookie
+ * - Returns 200 if logout successful
+ */
 export async function logoutController(req, res) {
   try {
     const accessToken = req.token;
@@ -139,7 +181,13 @@ export async function logoutController(req, res) {
   }
 }
 
-// Controller logout from all devices
+/**
+ * Controller: Logout user from all devices
+ * - Extracts accessToken and userId from request
+ * - Calls service to revoke all tokens for user
+ * - Clears refreshToken cookie
+ * - Returns 200 if logout successful
+ */
 export async function logoutAllDevicesController(req, res) {
   try {
     const accessToken = req.token;
@@ -153,7 +201,14 @@ export async function logoutAllDevicesController(req, res) {
   }
 }
 
-// Controller update user role
+/**
+ * Controller: Update user role
+ * - Extracts user ID from params and role from body
+ * - Validates role (must be user, admin, or moderator)
+ * - Calls service to update user role
+ * - Returns 200 with updated user info if successful
+ * - Returns 400 if role invalid or update fails
+ */
 export async function updateUserRoleController(req, res) {
   try {
     const { id } = req.params;

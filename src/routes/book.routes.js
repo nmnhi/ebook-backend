@@ -5,31 +5,52 @@ import {
   getBookByIdController,
   listBooksController
 } from "../controllers/bookController.js";
-import { authenticateToken } from "../middlewares/authMiddleware.js";
+import {
+  authenticateToken,
+  authenticateTokenOptional
+} from "../middlewares/authMiddleware.js";
 import { authorizeRole } from "../middlewares/authorizeRole.js";
 
 export const router = express.Router();
 
-// Upload book only by admin
+/**
+ * Route: POST /upload
+ * - Create (upload) a new book
+ * - Protected: requires authentication and admin role
+ */
 router.post(
   "/upload",
-  authenticateToken,
-  authorizeRole("admin"),
-  createBookController
+  authenticateToken, // Verify JWT token
+  authorizeRole("admin"), // Only allow admin users
+  createBookController // Controller to handle book creation
 );
 
-// Get list books with search and pagination
-router.get("/", listBooksController);
+/**
+ * Route: GET /
+ * - Get list of books with search, pagination, and sorting
+ * - Public: no authentication required
+ * - If user is logged in, favorites status will be included
+ */
+router.get("/", authenticateTokenOptional, listBooksController);
 
-// Book detail route
-router.get("/:id", getBookByIdController);
+/**
+ * Route: GET /:id
+ * - Get book details by ID
+ * - Optional authentication: if user is logged in, returns favorite status
+ * - If not logged in, still returns book details
+ */
+router.get("/:id", authenticateTokenOptional, getBookByIdController);
 
-// Delete book by ID only by admin
+/**
+ * Route: DELETE /:id
+ * - Delete a book by ID
+ * - Protected: requires authentication and admin role
+ */
 router.delete(
   "/:id",
-  authenticateToken,
-  authorizeRole("admin"),
-  deleteBookByIdController
+  authenticateToken, // Verify JWT token
+  authorizeRole("admin"), // Only allow admin users
+  deleteBookByIdController // Controller to handle book deletion
 );
 
 export default router;
