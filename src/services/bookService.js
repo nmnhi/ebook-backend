@@ -4,6 +4,7 @@ import {
   getBookById,
   getBooks
 } from "../models/bookModel.js";
+import ApiError from "../utils/ApiError.js";
 
 /**
  * Service: Create new book
@@ -22,7 +23,7 @@ import {
  */
 export async function createBookService(data) {
   const book = await createBook(data);
-  if (!book) return { success: false, error: "Failed to create book" };
+  if (!book) throw new ApiError("Failed to create new book", 400);
   return { success: true, data: book };
 }
 
@@ -41,8 +42,7 @@ export async function createBookService(data) {
  * @returns {{success: boolean, data?: object, error?: string}}
  */
 export async function listBooksService(params) {
-  const result = await getBooks(params);
-  return { success: true, data: result };
+  return await getBooks(params);
 }
 
 /**
@@ -55,8 +55,8 @@ export async function listBooksService(params) {
  */
 export async function getBookByIdService(bookId, userId) {
   const book = await getBookById({ bookId, userId });
-  if (!book) return { success: false, error: "Book not found" };
-  return { success: true, data: book };
+  if (!book) throw new ApiError("Book not found", 404);
+  return book;
 }
 
 /**
@@ -68,6 +68,6 @@ export async function getBookByIdService(bookId, userId) {
  */
 export async function deleteBookByIdService(id) {
   const deletedCount = await deleteBookById(id);
-  if (deletedCount === 0) return { success: false, error: "Book not found" };
-  return { success: true, data: { deletedCount } };
+  if (deletedCount === 0) throw new ApiError("Book not found", 404);
+  return { deletedCount };
 }

@@ -22,7 +22,7 @@ async function startServer() {
     console.log("✅ POSTGRESQL CONNECTED SUCCESSFULLY!");
 
     // Run seed immediately when server starts (currently commented out)
-    await seedBooksFromDBooks();
+    // await seedBooksFromDBooks();
 
     // Start server only if database connection is successful
     app.listen(PORT, () => {

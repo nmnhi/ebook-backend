@@ -7,75 +7,58 @@ import {
 
 /**
  * Controller: Add a book to the user's favorites
- * - Requires a valid JWT (userId from req.user.id)
- * - Expects bookId in request body
- * - 201 Created on success, 409 Conflict if already exists
  */
-export async function addFavoriteController(req, res) {
+export async function addFavoriteController(req, res, next) {
   try {
     const { bookId } = req.body;
     const userId = req.user.id;
 
-    const result = await addBookToFavorites(userId, bookId);
-    if (!result.success) {
-      return res.status(409).json(result);
-    }
-    return res.status(201).json(result);
+    const favorite = await addBookToFavorites(userId, bookId);
+    res.success(201, favorite);
   } catch (error) {
-    return res.status(500).json({ success: false, error: error.message });
+    next(error);
   }
 }
 
 /**
  * Controller: Remove a book from the user's favorites
- * - Requires a valid JWT (userId from req.user.id)
- * - Expects bookId in request params
- * - 200 OK on success, 404 Not Found if not in favorites
  */
-export async function removeFavoriteController(req, res) {
+export async function removeFavoriteController(req, res, next) {
   try {
     const { id: bookId } = req.params;
     const userId = req.user.id;
 
     const result = await removeBookFromFavorites(userId, bookId);
-    if (!result.success) {
-      return res.status(404).json(result);
-    }
-    return res.status(200).json(result);
+    res.success(200, result);
   } catch (error) {
-    return res.status(500).json({ success: false, error: error.message });
+    next(error);
   }
 }
 
 /**
  * Controller: Get all favorites of the logged-in user
- * - Requires a valid JWT (userId from req.user.id)
- * - Returns list of books with details and added_at timestamp
  */
-export async function getFavoritesController(req, res) {
+export async function getFavoritesController(req, res, next) {
   try {
     const userId = req.user.id;
-    const result = await getUserFavorites(userId);
-    return res.status(200).json(result);
+    const favorites = await getUserFavorites(userId);
+    res.success(200, favorites);
   } catch (error) {
-    return res.status(500).json({ success: false, error: error.message });
+    next(error);
   }
 }
 
 /**
  * Controller: Check if a specific book is in the user's favorites
- * - Requires a valid JWT (userId from req.user.id)
- * - Expects bookId in request params
- * - Returns true/false in data field
  */
-export async function checkFavoriteController(req, res) {
+export async function checkFavoriteController(req, res, next) {
   try {
     const { bookId } = req.params;
     const userId = req.user.id;
 
     const result = await checkBookFavorited(userId, bookId);
-    return res.status(200).json(result);
+    res.success(200, result);
   } catch (error) {
-    return res.status(500).json({ success: false, error: error.message });
+    next(error);
   }
 }

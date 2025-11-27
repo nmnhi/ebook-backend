@@ -30,7 +30,7 @@ import {
  */
 export async function registerUserService({ name, email, password }) {
   const existingUser = await getUserByEmail(email);
-  if (existingUser) return { success: false, error: "Email already in use" };
+  if (existingUser) throw new ApiError("Email already in use", 400);
 
   const hashedPassword = await bcrypt.hash(password, 10);
   const newUser = await createUser({ name, email, password: hashedPassword });
@@ -40,7 +40,7 @@ export async function registerUserService({ name, email, password }) {
   await saveRefreshToken(newUser.id, refreshToken);
 
   const { password: _, ...safeUser } = newUser;
-  return { success: true, data: { user: safeUser, accessToken, refreshToken } };
+  return { user: safeUser, accessToken, refreshToken };
 }
 
 /**
@@ -52,17 +52,17 @@ export async function registerUserService({ name, email, password }) {
  */
 export async function loginUserService({ email, password }) {
   const user = await getUserByEmail(email);
-  if (!user) return { success: false, error: "Invalid email or password" };
+  if (!user) throw new ApiError("Invalid email or password", 400);
 
   const isMatch = await bcrypt.compare(password, user.password);
-  if (!isMatch) return { success: false, error: "Invalid email or password" };
+  if (!isMatch) throw new ApiError("Invalid email or password", 400);
 
   const accessToken = generateAccessToken(user);
   const refreshToken = generateRefreshToken(user);
   await saveRefreshToken(user.id, refreshToken);
 
   const { password: _, ...safeUser } = user;
-  return { success: true, data: { user: safeUser, accessToken, refreshToken } };
+  return { user: safeUser, accessToken, refreshToken };
 }
 
 /**
@@ -70,8 +70,8 @@ export async function loginUserService({ email, password }) {
  */
 export async function getUserByIdService(id) {
   const user = await findUserById(id);
-  if (!user) return { success: false, error: "User not found" };
-  return { success: true, data: user };
+  if (!user) throw new ApiError("User not found", 404);
+  return user;
 }
 
 /**
@@ -79,16 +79,15 @@ export async function getUserByIdService(id) {
  */
 export async function getUserByEmailService(email) {
   const user = await getUserByEmail(email);
-  if (!user) return { success: false, error: "User not found" };
-  return { success: true, data: user };
+  if (!user) throw new ApiError("User not found", 404);
+  return user;
 }
 
 /**
  * Service: Get all users
  */
 export async function listUsersService() {
-  const users = await getAllUsers();
-  return { success: true, data: users };
+  return await getAllUsers();
 }
 
 /**
@@ -96,17 +95,17 @@ export async function listUsersService() {
  */
 export async function refreshAccessTokenService(refreshToken) {
   const stored = await findRefreshToken(refreshToken);
-  if (!stored) return { success: false, error: "Refresh token not found" };
+  if (!stored) throw new ApiError("Refresh token not found", 400);
 
   try {
     const decoded = verifyRefreshToken(refreshToken);
     const user = await findUserById(decoded.id);
-    if (!user) return { success: false, error: "User not found" };
+    if (!user) throw new ApiError("User not found", 404);
 
     const accessToken = generateAccessToken(user);
-    return { success: true, data: { accessToken } };
+    return { accessToken };
   } catch {
-    return { success: false, error: "Invalid or expired refresh token" };
+    throw new ApiError("Invalid or expired refresh token", 401);
   }
 }
 
@@ -115,14 +114,12 @@ export async function refreshAccessTokenService(refreshToken) {
  */
 export async function logoutUserService(refreshToken, accessToken) {
   const deleted = await deleteRefreshToken(refreshToken);
-  if (deleted === 0)
-    return { success: false, error: "Refresh token not found" };
+  if (deleted === 0) throw new ApiError("Refresh token not found", 400);
 
   const result = await addTokenToBlacklist(accessToken);
-  if (!result)
-    return { success: false, error: "Failed to blacklist access token" };
+  if (!result) throw new ApiError("Failed to blacklist access token", 500);
 
-  return { success: true, data: { message: "Logged out successfully" } };
+  return { message: "Logged out successfully" };
 }
 
 /**
@@ -131,10 +128,7 @@ export async function logoutUserService(refreshToken, accessToken) {
 export async function logoutAllDevicesService(accessToken, userId) {
   const deleted = await deleteAllRefreshTokensByUser(userId);
   await addTokenToBlacklist(accessToken);
-  return {
-    success: true,
-    data: { message: `Logged out from ${deleted} devices` }
-  };
+  return { message: `Logged out from ${deleted} devices` };
 }
 
 /**
@@ -142,11 +136,10 @@ export async function logoutAllDevicesService(accessToken, userId) {
  */
 export async function updateUserRoleService(id, role) {
   const user = await findUserById(id);
-  if (!user) return { success: false, error: "User not found" };
+  if (!user) throw new ApiError("User not found", 404);
 
   const updatedUser = await updateUserRole(id, role);
-  if (!updatedUser)
-    return { success: false, error: "Failed to update user role" };
+  if (!updatedUser) throw new ApiError("Failed to update user role", 400);
 
-  return { success: true, data: updatedUser };
+  return updatedUser;
 }

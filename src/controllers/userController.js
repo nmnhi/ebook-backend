@@ -12,20 +12,16 @@ import {
 
 /**
  * Controller: Register new user
- * - Calls service to register user and generate tokens
- * - Sets refreshToken in secure HTTP-only cookie
- * - Returns 201 on success, 400 on failure
  */
-export async function registerController(req, res) {
+export async function registerController(req, res, next) {
   try {
     const { name, email, password } = req.body;
-    const result = await registerUserService({ name, email, password });
+    const { user, accessToken, refreshToken } = await registerUserService({
+      name,
+      email,
+      password
+    });
 
-    if (!result.success) {
-      return res.status(400).json(result);
-    }
-
-    const { refreshToken } = result.data;
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: true,
@@ -33,28 +29,23 @@ export async function registerController(req, res) {
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
-    res.status(201).json(result);
+    res.success(201, { user, accessToken });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    next(error);
   }
 }
 
 /**
  * Controller: Login user
- * - Calls service to validate credentials and generate tokens
- * - Sets refreshToken in secure HTTP-only cookie
- * - Returns 200 on success, 400 on failure
  */
-export async function loginController(req, res) {
+export async function loginController(req, res, next) {
   try {
     const { email, password } = req.body;
-    const result = await loginUserService({ email, password });
+    const { user, accessToken, refreshToken } = await loginUserService({
+      email,
+      password
+    });
 
-    if (!result.success) {
-      return res.status(400).json(result);
-    }
-
-    const { refreshToken } = result.data;
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: true,
@@ -62,153 +53,112 @@ export async function loginController(req, res) {
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
-    res.status(200).json(result);
+    res.success(200, { user, accessToken });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    next(error);
   }
 }
 
 /**
  * Controller: Get user info by ID
- * - Returns 200 if found, 404 if not found
  */
-export async function getUserController(req, res) {
+export async function getUserController(req, res, next) {
   try {
-    const { id } = req.params;
-    const result = await getUserByIdService(id);
-
-    if (!result.success) {
-      return res.status(404).json(result);
-    }
-    res.status(200).json(result);
+    const user = await getUserByIdService(req.params.id);
+    res.success(200, user);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    next(error);
   }
 }
 
 /**
  * Controller: List all users
- * - Returns 200 with list of users
  */
-export async function getUsersController(req, res) {
+export async function getUsersController(req, res, next) {
   try {
-    const result = await listUsersService();
-    res.status(200).json(result);
+    const users = await listUsersService();
+    res.success(200, users);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    next(error);
   }
 }
 
 /**
  * Controller: Get user by email
- * - Returns 200 if found, 404 if not found
  */
-export async function getUserByEmailController(req, res) {
+export async function getUserByEmailController(req, res, next) {
   try {
-    const { email } = req.params;
-    const result = await getUserByEmailService(email);
-
-    if (!result.success) {
-      return res.status(404).json(result);
-    }
-    res.status(200).json(result);
+    const user = await getUserByEmailService(req.params.email);
+    res.success(200, user);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    next(error);
   }
 }
 
 /**
  * Controller: Refresh access token
- * - Returns 200 with new accessToken
- * - Returns 400 if missing, 401 if invalid
  */
-export async function refreshTokenController(req, res) {
+export async function refreshTokenController(req, res, next) {
   try {
     const refreshToken = req.cookies.refreshToken;
-    if (!refreshToken) {
-      return res
-        .status(400)
-        .json({ success: false, error: "Refresh token is missing" });
-    }
+    if (!refreshToken) throw new ApiError("Refresh token is missing", 400);
 
-    const result = await refreshAccessTokenService(refreshToken);
-    if (!result.success) {
-      return res.status(401).json(result);
-    }
-    res.status(200).json(result);
+    const { accessToken } = await refreshAccessTokenService(refreshToken);
+    res.success(200, { accessToken });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    next(error);
   }
 }
 
 /**
  * Controller: Logout user (current device)
- * - Clears refreshToken cookie
- * - Returns 200 if logout successful
  */
-export async function logoutController(req, res) {
+export async function logoutController(req, res, next) {
   try {
     const accessToken = req.token;
     const refreshToken = req.cookies.refreshToken;
-
-    if (!refreshToken || !accessToken) {
-      return res.status(400).json({
-        success: false,
-        error: "Refresh token and access token are required"
-      });
-    }
+    if (!refreshToken || !accessToken)
+      throw new ApiError("Refresh token and access token are required", 400);
 
     const result = await logoutUserService(refreshToken, accessToken);
-    if (!result.success) {
-      return res.status(400).json(result);
-    }
-
     res.clearCookie("refreshToken");
-    res.status(200).json(result);
+    res.success(200, result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    next(error);
   }
 }
 
 /**
  * Controller: Logout user from all devices
- * - Clears refreshToken cookie
- * - Returns 200 if logout successful
  */
-export async function logoutAllDevicesController(req, res) {
+export async function logoutAllDevicesController(req, res, next) {
   try {
     const accessToken = req.token;
     const userId = req.user.id;
-
     const result = await logoutAllDevicesService(accessToken, userId);
+
     res.clearCookie("refreshToken");
-    res.status(200).json(result);
+    res.success(200, result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    next(error);
   }
 }
 
 /**
  * Controller: Update user role
- * - Validates role
- * - Returns 200 if updated, 400 if invalid
  */
-export async function updateUserRoleController(req, res) {
+export async function updateUserRoleController(req, res, next) {
   try {
     const { id } = req.params;
     const { role } = req.body;
 
     if (!["user", "admin", "moderator"].includes(role)) {
-      return res.status(400).json({ success: false, error: "Invalid role" });
+      throw new ApiError("Invalid role", 400);
     }
 
-    const result = await updateUserRoleService(id, role);
-    if (!result.success) {
-      return res.status(400).json(result);
-    }
-
-    res.status(200).json(result);
+    const updatedUser = await updateUserRoleService(id, role);
+    res.success(200, updatedUser);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    next(error);
   }
 }

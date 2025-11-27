@@ -4,6 +4,8 @@ import cors from "cors";
 import express from "express";
 import helmet from "helmet";
 import morgan from "morgan";
+import errorHandler from "./middlewares/errorHandler.js";
+import responseMiddleware from "./middlewares/response.js";
 import bookRoutes from "./routes/book.routes.js";
 import userRoutes from "./routes/user.routes.js";
 import userFavoriteRoutes from "./routes/userFavoriteRoutes.routes.js";
@@ -29,6 +31,11 @@ app.use(morgan("dev"));
 // HTTP request logger → logs requests to console in "dev" format
 
 /**
+ * Custom response helpers
+ */
+app.use(responseMiddleware);
+
+/**
  * API routes
  */
 app.use("/api/users", userRoutes);
@@ -40,6 +47,10 @@ app.use("/api/books", bookRoutes);
 app.use("/api/favorites", userFavoriteRoutes);
 // Favorites routes (CRUD)
 
+/**
+ * Global error handler (must be last)
+ */
+app.use(errorHandler);
 /**
  * Export Express app
  */

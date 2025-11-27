@@ -7,33 +7,20 @@ import {
 
 /**
  * Controller: Create new book
- * - Reads body from client, calls service to create a book
- * - 201 on success, 400 on business failure, 500 on server error
- *
- * @param {import('express').Request} req - Express request
- * @param {import('express').Response} res - Express response
  */
-export async function createBookController(req, res) {
+export async function createBookController(req, res, next) {
   try {
-    const result = await createBookService(req.body);
-    if (!result.success) {
-      return res.status(400).json(result);
-    }
-    res.status(201).json(result);
+    const book = await createBookService(req.body);
+    res.success(201, book);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    next(error); // để errorHandler xử lý
   }
 }
 
 /**
  * Controller: List books with search/pagination/sort (and favorite flag)
- * - Parses query params and forwards userId if available
- * - Always returns 200 with normalized data on success
- *
- * @param {import('express').Request} req - Express request
- * @param {import('express').Response} res - Express response
  */
-export async function listBooksController(req, res) {
+export async function listBooksController(req, res, next) {
   try {
     const search = req.query.search || "";
     const page = req.query.page ? parseInt(req.query.page, 10) : 0;
@@ -41,7 +28,7 @@ export async function listBooksController(req, res) {
     const sortBy = req.query.sortBy || "";
     const sortOrder = req.query.sortOrder || "";
 
-    const result = await listBooksService({
+    const books = await listBooksService({
       search,
       page,
       limit,
@@ -50,50 +37,35 @@ export async function listBooksController(req, res) {
       userId: req.user ? req.user.id : null
     });
 
-    res.status(200).json(result);
+    res.success(200, books);
   } catch (error) {
-    console.error("Error in listBooksController:", error.message);
-    res.status(500).json({ success: false, error: error.message });
+    next(error);
   }
 }
 
 /**
  * Controller: Get book by ID
- * - Returns 404 when not found, 200 with book data otherwise
- *
- * @param {import('express').Request} req - Express request
- * @param {import('express').Response} res - Express response
  */
-export async function getBookByIdController(req, res) {
+export async function getBookByIdController(req, res, next) {
   try {
-    const bookId = req.params.id;
-    const userId = req.user ? req.user.id : null;
-
-    const result = await getBookByIdService(bookId, userId);
-    if (!result.success) {
-      return res.status(404).json(result);
-    }
-    res.status(200).json(result);
+    const book = await getBookByIdService(
+      req.params.id,
+      req.user ? req.user.id : null
+    );
+    res.success(200, book);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    next(error);
   }
 }
 
 /**
  * Controller: Delete book by ID
- * - Returns 404 if no rows deleted, 200 on success
- *
- * @param {import('express').Request} req - Express request
- * @param {import('express').Response} res - Express response
  */
-export async function deleteBookByIdController(req, res) {
+export async function deleteBookByIdController(req, res, next) {
   try {
     const result = await deleteBookByIdService(req.params.id);
-    if (!result.success) {
-      return res.status(404).json(result);
-    }
-    res.status(200).json(result);
+    res.success(200, result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    next(error);
   }
 }
