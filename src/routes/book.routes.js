@@ -11,7 +11,7 @@ import {
 } from "../middlewares/authMiddleware.js";
 import { authorizeRole } from "../middlewares/authorizeRole.js";
 
-export const router = express.Router();
+const router = express.Router();
 
 /**
  * Route: POST /upload
