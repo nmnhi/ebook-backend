@@ -12,7 +12,7 @@ import pool from "../config/db.js";
 export async function createUser({ name, email, password, role = "user" }) {
   const query = `INSERT INTO users (name, email, password, role)
     VALUES ($1, $2, $3, $4) 
-    RETURNING id, name, email, role, is_premium, created_at`;
+    RETURNING id, name, email, role, is_premium, created_at, updated_at`;
   const values = [name, email, password, role];
   const result = await pool.query(query, values);
   return result.rows[0];
@@ -27,7 +27,7 @@ export async function createUser({ name, email, password, role = "user" }) {
  * @returns {object|null} User record if found, otherwise null
  */
 export async function getUserByEmail(email) {
-  const query = `SELECT * FROM users WHERE email = $1;`;
+  const query = `SELECT * FROM users WHERE email = $1 LIMIT 1;`;
   const values = [email];
   const result = await pool.query(query, values);
   return result.rows[0];
@@ -42,7 +42,7 @@ export async function getUserByEmail(email) {
  * @returns {object|null} User record if found, otherwise null
  */
 export async function findUserById(id) {
-  const query = `SELECT id, name, email, role, is_premium, created_at FROM users WHERE id = $1;`;
+  const query = `SELECT id, name, email, role, is_premium, created_at, updated_at FROM users WHERE id = $1;`;
   const values = [id];
   const result = await pool.query(query, values);
   return result.rows[0];
@@ -56,7 +56,7 @@ export async function findUserById(id) {
  * @returns {array} List of all users
  */
 export async function getAllUsers() {
-  const query = `SELECT id, name, email, role, is_premium, created_at FROM users;`;
+  const query = `SELECT id, name, email, role, is_premium, created_at, updated_at FROM users;`;
   const result = await pool.query(query);
   return result.rows;
 }
@@ -71,7 +71,12 @@ export async function getAllUsers() {
  * @returns {object|null} Updated user record if successful, otherwise null
  */
 export async function updateUserRole(id, role) {
-  const query = `UPDATE users SET role = $1 WHERE id = $2 RETURNING id, name, email, role, is_premium, created_at;`;
+  const query = `
+    UPDATE users 
+    SET role = $1, updated_at = CURRENT_TIMESTAMP 
+    WHERE id = $2 
+    RETURNING id, name, email, role, is_premium, created_at, updated_at;
+  `;
   const values = [role, id];
   const result = await pool.query(query, values);
   return result.rows[0];

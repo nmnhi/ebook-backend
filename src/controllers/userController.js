@@ -12,53 +12,20 @@ import {
 
 /**
  * Controller: Register new user
- * - Extracts name, email, password from request body
- * - Calls service to create user and generate tokens
+ * - Calls service to register user and generate tokens
  * - Sets refreshToken in secure HTTP-only cookie
- * - Returns 201 with user info and accessToken
+ * - Returns 201 on success, 400 on failure
  */
 export async function registerController(req, res) {
   try {
     const { name, email, password } = req.body;
-    const { user, accessToken, refreshToken } = await registerUserService({
-      name,
-      email,
-      password
-    });
+    const result = await registerUserService({ name, email, password });
 
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "Strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-    });
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
 
-    res.status(201).json({
-      success: true,
-      message: "Register user successfully",
-      user,
-      accessToken
-    });
-  } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
-  }
-}
-
-/**
- * Controller: Login user
- * - Extracts email and password from request body
- * - Calls service to validate credentials and generate tokens
- * - Sets refreshToken in secure HTTP-only cookie
- * - Returns 200 with user info and accessToken
- */
-export async function loginController(req, res) {
-  try {
-    const { email, password } = req.body;
-    const { user, accessToken, refreshToken } = await loginUserService({
-      email,
-      password
-    });
-
+    const { refreshToken } = result.data;
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: true,
@@ -66,73 +33,94 @@ export async function loginController(req, res) {
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
-    res.status(200).json({
-      success: true,
-      message: "Login successful",
-      user,
-      accessToken
-    });
+    res.status(201).json(result);
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, error: error.message });
+  }
+}
+
+/**
+ * Controller: Login user
+ * - Calls service to validate credentials and generate tokens
+ * - Sets refreshToken in secure HTTP-only cookie
+ * - Returns 200 on success, 400 on failure
+ */
+export async function loginController(req, res) {
+  try {
+    const { email, password } = req.body;
+    const result = await loginUserService({ email, password });
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    const { refreshToken } = result.data;
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "Strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 }
 
 /**
  * Controller: Get user info by ID
- * - Extracts user ID from request params
- * - Calls service to fetch user details
- * - Returns 200 with user info if found
- * - Returns 404 if user not found
+ * - Returns 200 if found, 404 if not found
  */
 export async function getUserController(req, res) {
   try {
     const { id } = req.params;
-    const user = await getUserByIdService(id);
-    res.status(200).json({ success: true, user });
+    const result = await getUserByIdService(id);
+
+    if (!result.success) {
+      return res.status(404).json(result);
+    }
+    res.status(200).json(result);
   } catch (error) {
-    res.status(404).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 }
 
 /**
  * Controller: List all users
- * - Calls service to fetch all users
  * - Returns 200 with list of users
- * - Returns 500 if an error occurs
  */
 export async function getUsersController(req, res) {
   try {
-    const users = await listUsersService();
-    res.status(200).json({ success: true, users });
+    const result = await listUsersService();
+    res.status(200).json(result);
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 }
 
 /**
  * Controller: Get user by email
- * - Extracts email from request params
- * - Calls service to fetch user details
- * - Returns 200 with user info if found
- * - Returns 404 if user not found
+ * - Returns 200 if found, 404 if not found
  */
 export async function getUserByEmailController(req, res) {
   try {
     const { email } = req.params;
-    const user = await getUserByEmailService(email);
-    res.status(200).json({ success: true, user });
+    const result = await getUserByEmailService(email);
+
+    if (!result.success) {
+      return res.status(404).json(result);
+    }
+    res.status(200).json(result);
   } catch (error) {
-    res.status(404).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 }
 
 /**
  * Controller: Refresh access token
- * - Extracts refreshToken from cookies
- * - Calls service to generate new accessToken
  * - Returns 200 with new accessToken
- * - Returns 400 if refreshToken missing
- * - Returns 401 if refreshToken invalid
+ * - Returns 400 if missing, 401 if invalid
  */
 export async function refreshTokenController(req, res) {
   try {
@@ -140,23 +128,21 @@ export async function refreshTokenController(req, res) {
     if (!refreshToken) {
       return res
         .status(400)
-        .json({ success: false, message: "Refresh token is missing" });
+        .json({ success: false, error: "Refresh token is missing" });
     }
-    const { accessToken } = await refreshAccessTokenService(refreshToken);
-    res.status(200).json({
-      success: true,
-      message: "Access token refreshed",
-      accessToken
-    });
+
+    const result = await refreshAccessTokenService(refreshToken);
+    if (!result.success) {
+      return res.status(401).json(result);
+    }
+    res.status(200).json(result);
   } catch (error) {
-    res.status(401).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 }
 
 /**
  * Controller: Logout user (current device)
- * - Extracts accessToken from request and refreshToken from cookies
- * - Calls service to revoke tokens
  * - Clears refreshToken cookie
  * - Returns 200 if logout successful
  */
@@ -168,23 +154,24 @@ export async function logoutController(req, res) {
     if (!refreshToken || !accessToken) {
       return res.status(400).json({
         success: false,
-        message: "Refresh token and access token are required"
+        error: "Refresh token and access token are required"
       });
     }
 
     const result = await logoutUserService(refreshToken, accessToken);
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
 
     res.clearCookie("refreshToken");
-    res.status(200).json({ success: true, message: result.message });
+    res.status(200).json(result);
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 }
 
 /**
  * Controller: Logout user from all devices
- * - Extracts accessToken and userId from request
- * - Calls service to revoke all tokens for user
  * - Clears refreshToken cookie
  * - Returns 200 if logout successful
  */
@@ -197,17 +184,14 @@ export async function logoutAllDevicesController(req, res) {
     res.clearCookie("refreshToken");
     res.status(200).json(result);
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 }
 
 /**
  * Controller: Update user role
- * - Extracts user ID from params and role from body
- * - Validates role (must be user, admin, or moderator)
- * - Calls service to update user role
- * - Returns 200 with updated user info if successful
- * - Returns 400 if role invalid or update fails
+ * - Validates role
+ * - Returns 200 if updated, 400 if invalid
  */
 export async function updateUserRoleController(req, res) {
   try {
@@ -215,14 +199,16 @@ export async function updateUserRoleController(req, res) {
     const { role } = req.body;
 
     if (!["user", "admin", "moderator"].includes(role)) {
-      return res.status(400).json({ success: false, message: "Invalid role" });
+      return res.status(400).json({ success: false, error: "Invalid role" });
     }
 
-    const updatedUser = await updateUserRoleService(id, role);
-    res
-      .status(200)
-      .json({ success: true, message: "User role updated", user: updatedUser });
+    const result = await updateUserRoleService(id, role);
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.status(200).json(result);
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 }

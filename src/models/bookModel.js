@@ -98,18 +98,18 @@ export async function getBooks({
  * @param {object} params - Book ID and optional userId
  * @returns {object|null} Book record or null if not found
  */
-export async function getBookById({ id, userId }) {
+export async function getBookById({ bookId, userId }) {
   const result = await pool.query(
-    `SELECT b.*, 
+    `SELECT b.*,
             CASE WHEN uf.book_id IS NOT NULL THEN true ELSE false END AS is_favorite
      FROM books b
-     LEFT JOIN user_favorites uf 
+     LEFT JOIN user_favorites uf
        ON b.id = uf.book_id AND uf.user_id = $2
-     WHERE b.id = $1`,
-    [id, userId]
+     WHERE b.id = $1 
+     LIMIT 1`,
+    [bookId, userId]
   );
-
-  return result.rows[0];
+  return result.rows[0] || null;
 }
 
 /**
@@ -133,8 +133,9 @@ export async function deleteBookById(id) {
  * @returns {object|null} Book record if found, otherwise null
  */
 export async function findBookByFileUrl(fileUrl) {
-  const result = await pool.query(`SELECT * FROM books WHERE file_url = $1`, [
-    fileUrl
-  ]);
+  const result = await pool.query(
+    `SELECT * FROM books WHERE file_url = $1 LIMIT 1`,
+    [fileUrl]
+  );
   return result.rows[0];
 }

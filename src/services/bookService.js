@@ -7,49 +7,67 @@ import {
 
 /**
  * Service: Create new book
- * - Calls the model function to insert a new book into the database
- * - Returns the created book record
+ * - Calls the model to create a book
+ * - Normalizes the response for controller/frontend
  *
- * @param {object} data - Book details (title, author, description, etc.)
- * @returns {object} Newly created book record
+ * @param {object} data - Book details
+ * @param {string} data.title - Title of the book
+ * @param {string} data.author - Author name
+ * @param {string} [data.description] - Description
+ * @param {string} data.fileUrl - File URL
+ * @param {string} [data.coverUrl] - Cover image URL
+ * @param {string[]} [data.tags] - Tags list
+ * @param {boolean} [data.isPremium=false] - Premium flag
+ * @returns {{success: boolean, data?: object, error?: string}}
  */
 export async function createBookService(data) {
-  return await createBook(data);
+  const book = await createBook(data);
+  if (!book) return { success: false, error: "Failed to create book" };
+  return { success: true, data: book };
 }
 
 /**
- * Service: Get list of books with search and pagination
- * - Calls the model function to fetch books
- * - Supports search, pagination, sorting, and favorite status
+ * Service: List books with search/pagination/sort and favorite flag
+ * - Calls the model to fetch books with pagination metadata
+ * - Returns data as-is within a normalized envelope
  *
- * @param {object} params - Search and pagination parameters
- * @returns {object} Paginated list of books with metadata
+ * @param {object} params - Query parameters
+ * @param {string} [params.search=""] - Keyword for title/author
+ * @param {number} [params.page=0] - Zero-based page index
+ * @param {number} [params.limit=10] - Page size
+ * @param {string} [params.sortBy="created_at"] - Sort field (created_at|title)
+ * @param {string} [params.sortOrder="DESC"] - Sort order (ASC|DESC)
+ * @param {string|null} [params.userId] - For favorite flag
+ * @returns {{success: boolean, data?: object, error?: string}}
  */
 export async function listBooksService(params) {
-  return await getBooks(params);
+  const result = await getBooks(params);
+  return { success: true, data: result };
 }
 
 /**
- * Service: Get book by ID
- * - Calls the model function to fetch a single book by ID
- * - Includes favorite status if userId is provided
+ * Service: Get book by ID (with optional favorite flag)
+ * - Returns a normalized not-found error if missing
  *
  * @param {string} id - Book ID
- * @param {string|null} userId - User ID (optional, for favorites)
- * @returns {object|null} Book record if found, otherwise null
+ * @param {string|null} userId - User ID to compute is_favorite
+ * @returns {{success: boolean, data?: object, error?: string}}
  */
-export async function getBookByIdService(id, userId) {
-  return await getBookById({ id, userId });
+export async function getBookByIdService(bookId, userId) {
+  const book = await getBookById({ bookId, userId });
+  if (!book) return { success: false, error: "Book not found" };
+  return { success: true, data: book };
 }
 
 /**
  * Service: Delete book by ID
- * - Calls the model function to remove a book from the database
- * - Returns number of rows deleted (0 if not found)
+ * - Returns deletedCount when deletion succeeds
  *
  * @param {string} id - Book ID
- * @returns {number} Number of rows deleted
+ * @returns {{success: boolean, data?: {deletedCount: number}, error?: string}}
  */
 export async function deleteBookByIdService(id) {
-  return await deleteBookById(id);
+  const deletedCount = await deleteBookById(id);
+  if (deletedCount === 0) return { success: false, error: "Book not found" };
+  return { success: true, data: { deletedCount } };
 }

@@ -43,7 +43,7 @@ export async function deleteRefreshToken(refreshToken) {
  */
 export async function findRefreshToken(refreshToken) {
   const result = await pool.query(
-    "SELECT * FROM refresh_tokens WHERE token = $1",
+    "SELECT * FROM refresh_tokens WHERE token = $1 LIMIT 1",
     [refreshToken]
   );
   return result.rows[0];

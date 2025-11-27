@@ -6,6 +6,7 @@ import helmet from "helmet";
 import morgan from "morgan";
 import bookRoutes from "./routes/book.routes.js";
 import userRoutes from "./routes/user.routes.js";
+import userFavoriteRoutes from "./routes/userFavoriteRoutes.routes.js";
 
 const app = express();
 
@@ -35,6 +36,9 @@ app.use("/api/users", userRoutes);
 
 app.use("/api/books", bookRoutes);
 // Book-related routes (CRUD, search, favorites)
+
+app.use("/api/favorites", userFavoriteRoutes);
+// Favorites routes (CRUD)
 
 /**
  * Export Express app
