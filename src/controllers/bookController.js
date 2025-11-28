@@ -2,6 +2,8 @@ import {
   createBookService,
   deleteBookByIdService,
   getBookByIdService,
+  getBooksByCategoryService,
+  getPopularCategoriesService,
   listBooksService
 } from "../services/bookService.js";
 
@@ -65,6 +67,46 @@ export async function deleteBookByIdController(req, res, next) {
   try {
     const result = await deleteBookByIdService(req.params.id);
     res.success(200, result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Controller: Get popular categories
+ */
+export async function getPopularCategoriesController(req, res, next) {
+  try {
+    const limit = req.query.limit ? parseInt(req.query.limit) : 10;
+    const categories = await getPopularCategoriesService(limit);
+    res.success(200, categories);
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Controller: Get books by category
+ * - Supports search, pagination, and sorting
+ */
+export async function getBooksByCategoryController(req, res, next) {
+  try {
+    const category = req.query.category;
+    const search = req.query.search || "";
+    const page = req.query.page ? parseInt(req.query.page, 10) : 0;
+    const limit = req.query.limit ? parseInt(req.query.limit, 10) : 10;
+    const sortOrder = req.query.sortOrder || "ASC";
+
+    const data = await getBooksByCategoryService({
+      category,
+      search,
+      page,
+      limit,
+      sortOrder,
+      userId: req.user ? req.user.id : null
+    });
+
+    res.success(200, data);
   } catch (error) {
     next(error);
   }

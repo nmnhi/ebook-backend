@@ -3,6 +3,8 @@ import {
   createBookController,
   deleteBookByIdController,
   getBookByIdController,
+  getBooksByCategoryController,
+  getPopularCategoriesController,
   listBooksController
 } from "../controllers/bookController.js";
 import {
@@ -34,12 +36,31 @@ router.post(
 router.get("/", authenticateTokenOptional, listBooksController);
 
 /**
+ * Route: GET /categories
+ * - Get popular categories (tags)
+ * - Public: no authentication required
+ */
+router.get("/categories", getPopularCategoriesController);
+
+/**
  * Route: GET /:id
  * - Get book details by ID
  * - Optional authentication: if user is logged in, returns favorite status
  * - If not logged in, still returns book details
  */
 router.get("/:id", authenticateTokenOptional, getBookByIdController);
+
+/**
+ * Route: GET /categories/books
+ * - Get books by category with search, pagination, and sorting
+ * - Optional authentication: if user is logged in, returns favorite status
+ * - If not logged in, still returns book list
+ */
+router.get(
+  "/categories/books",
+  authenticateTokenOptional,
+  getBooksByCategoryController
+);
 
 /**
  * Route: DELETE /:id

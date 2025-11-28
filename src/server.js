@@ -2,6 +2,8 @@ import dotenv from "dotenv";
 import app from "./app.js";
 import pool from "./config/db.js";
 import { seedBooksFromDBooks } from "./config/seedBook.js";
+import { seedBooksFromGutenberg } from "./config/seedGutenberg.js";
+import { seedBooksFromOpenLibrary } from "./config/seedOpenLibrary.js";
 
 dotenv.config();
 // Load environment variables from .env file
@@ -23,6 +25,8 @@ async function startServer() {
 
     // Run seed immediately when server starts (currently commented out)
     await seedBooksFromDBooks();
+    await seedBooksFromOpenLibrary();
+    await seedBooksFromGutenberg();
 
     // Start server only if database connection is successful
     app.listen(PORT, "0.0.0.0", () => {
@@ -33,6 +37,8 @@ async function startServer() {
     setInterval(() => {
       console.log("⏰ Running seedBooks again...");
       seedBooksFromDBooks();
+      seedBooksFromOpenLibrary();
+      seedBooksFromGutenberg();
     }, 2 * 60 * 60 * 1000);
   } catch (err) {
     // If DB connection fails, log error and stop server
