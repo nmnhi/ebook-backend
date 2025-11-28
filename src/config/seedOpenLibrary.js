@@ -8,11 +8,22 @@ import { createBook, findBookByFileUrl } from "../models/bookModel.js";
  * @param {number} page - page number
  * @returns {Promise<Array>} list of books
  */
-async function fetchOpenLibraryBooks(query = "programming", page = 1) {
-  const res = await axios.get(
-    `https://openlibrary.org/search.json?q=${query}&page=${page}&limit=20`
-  );
-  return res.data.docs;
+async function fetchOpenLibraryBooks(
+  query = "programming",
+  page = 1,
+  minYear = 2024
+) {
+  try {
+    const res = await axios.get(
+      `https://openlibrary.org/search.json?q=${query}&page=${page}&limit=20`
+    );
+    return (res.data.docs || []).filter(
+      (book) => book.first_publish_year && book.first_publish_year >= minYear
+    );
+  } catch (err) {
+    console.error(`❌ Failed to fetch "${query}" page ${page}:`, err.message);
+    return [];
+  }
 }
 
 /**

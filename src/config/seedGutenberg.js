@@ -11,10 +11,13 @@ async function fetchGutenbergBooks(query = "literature", page = 1) {
     const res = await axios.get(
       `https://gutendex.com/books?search=${query}&page=${page}`
     );
-    return res.data.results || [];
+    return {
+      books: res.data.results || [],
+      hasNext: !!res.data.next
+    };
   } catch (err) {
     console.error(`❌ Failed to fetch "${query}" page ${page}:`, err.message);
-    return [];
+    return { books: [], hasNext: false };
   }
 }
 
@@ -58,18 +61,22 @@ export async function seedBooksFromGutenberg() {
       "philosophy",
       "technology"
     ];
+    const MAX_PAGES = 2; // giới hạn số trang tối đa mỗi topic
     let addedCount = 0,
       skippedCount = 0,
       formatSkipped = 0;
 
     for (const topic of topics) {
-      for (let page = 1; page <= 2; page++) {
+      let page = 1;
+      let hasNext = true;
+
+      while (hasNext && page <= MAX_PAGES) {
         console.log(`📖 Fetching topic "${topic}" page ${page}...`);
-        const books = await fetchGutenbergBooks(topic, page);
+        const { books, hasNext: next } = await fetchGutenbergBooks(topic, page);
 
         if (books.length === 0) {
           console.log(`⚠️ No books found for "${topic}" page ${page}`);
-          continue;
+          break;
         }
 
         for (const book of books) {
@@ -92,6 +99,9 @@ export async function seedBooksFromGutenberg() {
           console.log(`✅ Seeded: ${mapped.title}`);
           addedCount++;
         }
+
+        page++;
+        hasNext = next;
       }
     }
 

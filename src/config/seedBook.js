@@ -4,18 +4,19 @@ import { createBook, findBookByFileUrl } from "../models/bookModel.js";
 
 /**
  * Fetch books from dBooks API by keyword
- * - Calls https://www.dbooks.org/api/search/:keyword
- * - Returns an array of book metadata
  */
 async function fetchBooksByKeyword(keyword) {
-  const res = await axios.get(`https://www.dbooks.org/api/search/${keyword}`);
-  return res.data.books || [];
+  try {
+    const res = await axios.get(`https://www.dbooks.org/api/search/${keyword}`);
+    return res.data.books || [];
+  } catch (err) {
+    console.error(`❌ Failed to fetch keyword "${keyword}":`, err.message);
+    return [];
+  }
 }
 
 /**
  * Fetch detailed book info by ID
- * - Calls https://www.dbooks.org/api/book/:id
- * - Returns detailed book data
  */
 async function fetchBookDetail(bookId) {
   const res = await axios.get(`https://www.dbooks.org/api/book/${bookId}`);
@@ -41,7 +42,6 @@ function mapToBookModel(book) {
 
 /**
  * Seed books from dBooks API into local database
- * - Loops through multiple keywords
  */
 export async function seedBooksFromDBooks() {
   try {
