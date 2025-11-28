@@ -1,0 +1,70 @@
+EBOOK-BACKEND
+EBOOK-BACKEND là hệ thống backend cho nền tảng đọc sách điện tử, hỗ trợ quản lý sách, người dùng, thư viện cá nhân, xác thực JWT, và tích hợp nguồn sách từ DBooks.
+
+🚀 Tính năng đã hoàn thành
+📚 Quản lý sách: danh sách, chi tiết, tìm kiếm, phân trang
+
+🔗 Tích hợp DBooks: lấy sách từ DBooks API và lưu vào DB
+
+👤 Người dùng: đăng ký, đăng nhập, cập nhật profile, xác thực JWT
+
+🔐 Phân quyền: user/admin, middleware kiểm tra token
+
+❤️ Thư viện cá nhân: thêm/xem/xóa sách yêu thích
+
+📄 Swagger tài liệu API tại /api-docs
+
+🛠️ Công nghệ sử dụng
+Layer	Công nghệ chính
+Backend	Node.js + Express
+Database	PostgreSQL
+Auth	JWT + bcrypt
+API Docs	Swagger
+Dev Tools	Docker + Docker Compose
+External API	DBooks (sách nguồn)
+📦 Cách chạy bằng Docker
+1. Build và chạy container
+bash
+docker-compose up -d --build
+2. Import dữ liệu từ file SQL
+bash
+docker cp backup.sql ebook-postgres:/backup.sql
+docker exec -it ebook-postgres psql -U postgres -d nmnhi -f /backup.sql
+3. Truy cập API
+Backend: http://localhost:8080
+
+Swagger: http://localhost:8080/api-docs
+
+📁 Cấu trúc thư mục
+Mã
+src/
+├── config/               # Kết nối DB, seed dữ liệu, config token
+├── controllers/          # Xử lý logic request
+├── middlewares/          # Xác thực, phân quyền, xử lý lỗi
+├── models/               # Định nghĩa bảng DB
+├── routes/               # Định nghĩa endpoint
+├── services/             # Xử lý nghiệp vụ
+├── utils/                # app.js, server.js
+.env                      # Biến môi trường
+Dockerfile                # Docker hóa backend
+docker-compose.yml        # Chạy backend + PostgreSQL
+🔐 Xác thực & Phân quyền
+Đăng nhập trả về JWT
+
+Middleware kiểm tra token
+
+Phân quyền theo role (user/admin)
+
+Token blacklist khi logout
+
+📚 Tài liệu API
+Swagger UI: http://localhost:8080/api-docs
+
+Bao gồm: Users, Books, Favorites, Auth
+
+🧠 Ghi chú
+Dữ liệu sách được lấy từ DBooks và lưu vào bảng books
+
+Người dùng có thể thêm sách vào thư viện cá nhân (favorites)
+
+Mỗi API đều có middleware kiểm tra token nếu cần
