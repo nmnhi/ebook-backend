@@ -25,7 +25,7 @@ async function startServer() {
     // await seedBooksFromDBooks();
 
     // Start server only if database connection is successful
-    app.listen(PORT, () => {
+    app.listen(PORT, "0.0.0.0", () => {
       console.log(`🚀 Server is running on port ${PORT}`);
     });
 
