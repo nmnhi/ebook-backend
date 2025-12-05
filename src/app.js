@@ -16,19 +16,28 @@ const app = express();
  * Basic middleware setup
  */
 app.use(express.json());
-// Parse incoming JSON request bodies
 
-app.use(cors());
-// Enable Cross-Origin Resource Sharing (CORS) → allows API calls from different domains
+// CORS configuration
+app.use(
+  cors({
+    origin: ["http://localhost:5173", "http://localhost:5174"], // Allow Vite dev servers
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+  })
+);
 
 app.use(cookieParser());
-// Parse cookies from incoming requests (used for refresh tokens)
 
-app.use(helmet());
-// Secure HTTP headers → helps protect against common web vulnerabilities
+// Configure helmet to allow PDF loading
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    crossOriginEmbedderPolicy: false
+  })
+);
 
 app.use(morgan("dev"));
-// HTTP request logger → logs requests to console in "dev" format
 
 /**
  * Custom response helpers
@@ -39,18 +48,14 @@ app.use(responseMiddleware);
  * API routes
  */
 app.use("/api/users", userRoutes);
-// User-related routes (authentication, profile, admin actions)
-
 app.use("/api/books", bookRoutes);
-// Book-related routes (CRUD, search, favorites)
-
 app.use("/api/favorites", userFavoriteRoutes);
-// Favorites routes (CRUD)
 
 /**
  * Global error handler (must be last)
  */
 app.use(errorHandler);
+
 /**
  * Export Express app
  */

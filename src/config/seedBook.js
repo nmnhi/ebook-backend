@@ -1,6 +1,8 @@
 // seedBooks.js
 import axios from "axios";
+import fetch from "node-fetch";
 import { createBook, findBookByFileUrl } from "../models/bookModel.js";
+import { uploadToSupabase } from "../services/uploadService.js";
 
 /**
  * Fetch books from dBooks API by keyword
@@ -24,9 +26,37 @@ async function fetchBookDetail(bookId) {
 }
 
 /**
+ * Download PDF from dBooks (temporary link)
+ */
+async function downloadPdf(url) {
+  try {
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        Accept: "application/pdf",
+        Referer: "https://www.dbooks.org/"
+      }
+    });
+
+    const contentType = res.headers.get("content-type");
+
+    if (!contentType || !contentType.includes("pdf")) {
+      console.log("⚠️ Not a PDF, skipping download:", url);
+      return null;
+    }
+
+    return Buffer.from(await res.arrayBuffer());
+  } catch (err) {
+    console.error("❌ Failed to download PDF:", err.message);
+    return null;
+  }
+}
+
+/**
  * Map dBooks API response to local Book model
  */
-function mapToBookModel(book) {
+function mapToBookModel(book, pdfUrl) {
   return {
     title: book.title,
     author: book.authors,
@@ -34,9 +64,9 @@ function mapToBookModel(book) {
     fileUrl: book.url,
     coverUrl: book.image,
     tags: book.subject ? book.subject.slice(0, 5) : [],
-    isPremium: Math.random() < 0.3, // Randomly mark 30% as premium
+    isPremium: Math.random() < 0.3,
     source: "dbook",
-    downloadUrl: book.url
+    download_url: pdfUrl // ✅ now using Supabase URL
   };
 }
 
@@ -45,18 +75,11 @@ function mapToBookModel(book) {
  */
 export async function seedBooksFromDBooks() {
   try {
-    const keywords = [
-      "javascript",
-      "python",
-      "java",
-      "react",
-      "node",
-      "science",
-      "history"
-    ];
-    let addedCount = 0,
-      skippedCount = 0,
-      errorCount = 0;
+    const keywords = ["react"]; // ✅ You can add more later
+
+    let addedCount = 0;
+    let skippedCount = 0;
+    let errorCount = 0;
 
     for (const keyword of keywords) {
       console.log(`🔎 Fetching books for keyword "${keyword}"...`);
@@ -65,25 +88,43 @@ export async function seedBooksFromDBooks() {
       for (const book of books) {
         try {
           const detail = await fetchBookDetail(book.id);
-          const mapped = mapToBookModel(detail);
 
-          // Check for duplicates
-          const exists = await findBookByFileUrl(mapped.fileUrl);
+          // ✅ Check duplicate by fileUrl
+          const exists = await findBookByFileUrl(detail.url);
           if (exists) {
-            console.log(`⚠️ Skipped (already exists): ${mapped.title}`);
+            console.log(`⚠️ Skipped (already exists): ${detail.title}`);
             skippedCount++;
             continue;
           }
 
+          // ✅ Download PDF first
+          const pdfBuffer = await downloadPdf(detail.download);
+          if (!pdfBuffer) {
+            console.log(`⚠️ Skipped (PDF missing): ${detail.title}`);
+            skippedCount++;
+            continue;
+          }
+
+          // ✅ Upload to Supabase
+          const filePath = `books/${detail.id}.pdf`;
+          const publicUrl = await uploadToSupabase(
+            "books",
+            filePath,
+            pdfBuffer,
+            "application/pdf"
+          );
+
+          console.log(`📚 Uploaded PDF → ${publicUrl}`);
+
+          // ✅ Map book with Supabase URL
+          const mapped = mapToBookModel(detail, publicUrl);
+
+          // ✅ Save to DB
           const saved = await createBook(mapped);
           console.log(`✅ Seeded: ${saved.title}`);
           addedCount++;
         } catch (err) {
-          if (err.response && err.response.status === 404) {
-            console.log(`❌ Skipped (404 Not Found): Book ID ${book.id}`);
-          } else {
-            console.error(`❌ Error seeding book ID ${book.id}:`, err.message);
-          }
+          console.error(`❌ Error seeding book ID ${book.id}:`, err.message);
           errorCount++;
         }
       }
