@@ -7,6 +7,7 @@ import morgan from "morgan";
 import errorHandler from "./middlewares/errorHandler.js";
 import responseMiddleware from "./middlewares/response.js";
 import bookRoutes from "./routes/book.routes.js";
+import ttsRoutes from "./routes/tts.routes.js";
 import userRoutes from "./routes/user.routes.js";
 import userFavoriteRoutes from "./routes/userFavoriteRoutes.routes.js";
 
@@ -50,6 +51,7 @@ app.use(responseMiddleware);
 app.use("/api/users", userRoutes);
 app.use("/api/books", bookRoutes);
 app.use("/api/favorites", userFavoriteRoutes);
+app.use("/api/voice", ttsRoutes);
 
 /**
  * Global error handler (must be last)
